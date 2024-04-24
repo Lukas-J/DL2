@@ -1,3 +1,6 @@
 data/train/audio
 data/test
 dl-venv/
+data/challenge
+!/data/challenge/.gitkeep
+src/tensorflow-speech-recognition-challenge.zip
