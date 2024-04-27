@@ -1,5 +1,7 @@
 data/train/audio
 data/test
+data/val
+models/
 dl-venv/
 data/challenge
 !data/challenge/.gitkeep

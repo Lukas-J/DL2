@@ -1,0 +1,2 @@
+model;n_params;loss;acc;info;path
+CNN2D;1628446;1.3146817684173584;0.8285296559333801;{'Data Augmentation': 'No', 'Regularization': 'No', 'Optimizer': 'Adam', 'Learning Rate': 0.001};CNN2D_1.keras
