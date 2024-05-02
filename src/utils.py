@@ -6,6 +6,22 @@ import shutil
 SEED = 1337
 from typing import List, Tuple, Dict, Union
 
+class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+  def __init__(self, d_model, warmup_steps=4000):
+    super().__init__()
+
+    self.d_model = d_model
+    self.d_model = tf.cast(self.d_model, tf.float32)
+
+    self.warmup_steps = warmup_steps
+
+  def __call__(self, step):
+    step = tf.cast(step, dtype=tf.float32)
+    arg1 = tf.math.rsqrt(step)
+    arg2 = step * (self.warmup_steps ** -1.5)
+
+    return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+
 
 def copy_folder_structure(source_folder: str, destination_folder: str):
     if not os.path.exists(destination_folder):
@@ -72,19 +88,24 @@ def get_callbacks(path: str) -> List[tf.keras.callbacks.Callback]:
         monitor="val_accuracy", patience=4
     )
     checkpoint = tf.keras.callbacks.ModelCheckpoint(
-        path, save_best_only=True, monitor="val_accuracy", mode="max"
+        path,
+        save_best_only=True,
+        save_weights_only=True,
+        monitor="val_accuracy",
+        mode="max",
     )
     return [early_stopping, checkpoint]
 
 
 def eval_and_save(
     model_type: str,
+    model: tf.keras.Model,
     ds_test: tf.data.Dataset,
     config: Dict[str, Union[int, str, float]],
     history: Dict[str, List[float]],
     path: str,
 ) -> None:
-    model = tf.keras.models.load_model("../models/" + path)
+    model.load_weights("../models/" + path)
     loss, acc = model.evaluate(ds_test)
 
     history = pd.DataFrame(history.history)
