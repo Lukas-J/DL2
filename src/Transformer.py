@@ -6,8 +6,16 @@ class PositionalEmbedding(tf.keras.layers.Layer):
         super().__init__()
         self.d_model = d_model
         # based on https://github.com/openai/whisper/blob/main/whisper/model.py#L162
-        self.conv1 = tf.keras.layers.Conv1D(d_model, kernel_size=3, padding='same', activation=tf.keras.activations.gelu)
-        self.conv2 = tf.keras.layers.Conv1D(d_model, kernel_size=3, strides=2, padding='same', activation=tf.keras.activations.gelu)
+        self.conv1 = tf.keras.layers.Conv1D(
+            d_model, kernel_size=3, padding="same", activation=tf.keras.activations.gelu
+        )
+        self.conv2 = tf.keras.layers.Conv1D(
+            d_model,
+            kernel_size=3,
+            strides=2,
+            padding="same",
+            activation=tf.keras.activations.gelu,
+        )
         self.pos_encoding = tf.keras.layers.Embedding(block_size, d_model)
 
     def call(self, x: tf.Tensor) -> tf.Tensor:

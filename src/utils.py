@@ -1,26 +1,29 @@
 import tensorflow as tf
+import numpy as np
 import pandas as pd
 import os
 import shutil
+import librosa
 
 SEED = 1337
 from typing import List, Tuple, Dict, Union
 
+
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
-  def __init__(self, d_model, warmup_steps=4000):
-    super().__init__()
+    def __init__(self, d_model, warmup_steps=4000):
+        super().__init__()
 
-    self.d_model = d_model
-    self.d_model = tf.cast(self.d_model, tf.float32)
+        self.d_model = d_model
+        self.d_model = tf.cast(self.d_model, tf.float32)
 
-    self.warmup_steps = warmup_steps
+        self.warmup_steps = warmup_steps
 
-  def __call__(self, step):
-    step = tf.cast(step, dtype=tf.float32)
-    arg1 = tf.math.rsqrt(step)
-    arg2 = step * (self.warmup_steps ** -1.5)
+    def __call__(self, step):
+        step = tf.cast(step, dtype=tf.float32)
+        arg1 = tf.math.rsqrt(step)
+        arg2 = step * (self.warmup_steps**-1.5)
 
-    return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+        return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
 
 
 def copy_folder_structure(source_folder: str, destination_folder: str):
@@ -154,3 +157,34 @@ def waveform_to_log_mel_spectrogram(
     log_mel_spectrogram = tf.math.log(mel_spectrogram + 1e-6)
 
     return log_mel_spectrogram
+
+
+def get_background_noise(background_noise_folder: str) -> List[np.ndarray]:
+    background_noise_files = os.listdir(background_noise_folder)
+    background_noise_files = [
+        path for path in background_noise_files if path.endswith(".wav")
+    ]
+    background_noise_files = [
+        os.path.join(background_noise_folder, path) for path in background_noise_files
+    ]
+    background_noise_files = [
+        librosa.load(path, sr=16000)[0] for path in background_noise_files
+    ]
+    return background_noise_files
+
+
+def augment_fn(
+    waveform: tf.Tensor, background_noise_files: List[np.ndarray], p: float
+) -> tf.Tensor:
+    if tf.random.uniform(()) <= p:
+        background_noise = background_noise_files[
+            np.random.randint(0, len(background_noise_files))
+        ]
+        start = np.random.randint(0, len(background_noise) - len(waveform))
+        background_noise = background_noise[start : start + len(waveform)]
+        background_noise = tf.convert_to_tensor(background_noise)
+        background_noise = tf.cast(background_noise, tf.float32)
+        background_noise = tf.reshape(background_noise, (16000, -1))
+        alpha = tf.random.uniform(()) * 0.2 + 0.1
+        waveform = alpha * background_noise + (1 - alpha) * waveform
+    return waveform
